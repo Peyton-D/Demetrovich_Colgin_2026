@@ -8,11 +8,11 @@ load('cellStruct1_14_26.mat')
 place_cell_metrics(cellStruct)
 
 % 3. Fig. 5: Rat exploration time on track
-stim_explore_time(cellStruct)
+exploration_metrics(cellStruct)
 
 % 4. Figs. 6-9,S4: dentate spike rates and PETHs - REQUIRES ACCESS TO EACH
 % SESSION'S LFP DATA
-dsMetrics_revision(cellStruct)
+dentate_spike_metrics(cellStruct)
 
 %% optional / supplmental
 
