@@ -1,4 +1,4 @@
-function stim_explore_time(cellStruct)
+function exploration_metrics(cellStruct)
 % Purpose: to extract the time spent by rats on the track in each condition
 % and session, plot the average exploration maps and individual data
 % points, and run stats
