@@ -178,7 +178,7 @@ table_for_stats.Day = categorical(table_for_stats.Day);
 table_for_stats.Session = categorical(table_for_stats.Session);
 table_for_stats.Session = reordercats(table_for_stats.Session, {'A', 'B'});
 
-% fit gmodel
+% fit model
 glme = fitglme(table_for_stats, ...
     'StimTime ~ Condition*Session  + (1|Rat) + (1|Rat:Day)', 'Verbose', 1, 'DummyVarCoding', 'effects');
 
