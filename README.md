@@ -1,1 +1,1 @@
-Code used to generate figures in "Dynamics of Dentate Gyrus Place Cells and Dentate Spikes Signal Spatial and Nonspatial Changes in Environments" by Demetrovich and Colgin. Refer to pipeline.m for overview.
+Code used to generate figures in "Dynamics of Dentate Gyrus Place Cells and Dentate Spikes During Spatial and Nonspatial Changes in Environments" by Demetrovich and Colgin. Refer to pipeline.m for overview.
