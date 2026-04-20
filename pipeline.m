@@ -14,7 +14,7 @@ exploration_metrics(cellStruct);
 %% 3.5. Fig. S2-S3: Dentate spike detection and classification
 evaluate_scoring.m; % find the best standard deviation threshold (4.0)
 ds_methods_figure.m; 
-rerun_ds_detection(cellStruct, 4);
+rerun_ds_detection(cellStruct, 4.0); % use the best standard deviation threshold for detection
 
 %% 4. Figs. 6-9,S4: dentate spike rates and PETHs
 dentate_spike_metrics(cellStruct);
