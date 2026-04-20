@@ -11,14 +11,12 @@ place_cell_metrics(cellStruct);
 %% 3. Fig. 5: Rat exploration time on track
 exploration_metrics(cellStruct);
 
-%% 3.5. Fig. S2-S3: Dentate spike detection and classification - REQUIRES ACCESS TO EACH
-% SESSION'S RECORDING DATA - WILL NOT RUN!
+%% 3.5. Fig. S2-S3: Dentate spike detection and classification
 evaluate_scoring.m; % find the best standard deviation threshold (4.0)
 ds_methods_figure.m; 
 rerun_ds_detection(cellStruct, 4);
 
-%% 4. Figs. 6-9,S4: dentate spike rates and PETHs - REQUIRES ACCESS TO EACH
-% SESSION'S RECORDING DATA - WILL NOT RUN!
+%% 4. Figs. 6-9,S4: dentate spike rates and PETHs
 dentate_spike_metrics(cellStruct);
 
 
