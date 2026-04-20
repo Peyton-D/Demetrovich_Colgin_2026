@@ -1,5 +1,5 @@
 %% pipeline.m
-% run each section sequentially to recreate the figures from the paper - WILL NOT RUN WITHOUT DATA STORED LOCALLY
+% run each section sequentially to recreate the figures from the paper - CODE WILL NOT RUN WITHOUT DATA STORED LOCALLY IN LOCATIONS SPECIFIED IN "cellStruct"!
 % CODE PROVIDED FOR TRANSPARENCY
 
 %% 1. read in data struct
