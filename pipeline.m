@@ -1,5 +1,6 @@
 %% pipeline.m
-% run each section sequentially to recreate the figures from the paper
+% run each section sequentially to recreate the figures from the paper - WILL NOT RUN WITHOUT DATA STORED LOCALLY
+% CODE PROVIDED FOR TRANSPARENCY
 
 %% 1. read in data struct
 load('cellStruct1_14_26.mat');
