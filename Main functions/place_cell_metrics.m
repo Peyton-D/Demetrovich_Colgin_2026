@@ -62,11 +62,11 @@ for r = 1:length(cellStruct.rat)
             fprintf('\t%s Day %d\n', cellStruct.rat(r).cond(c).name, d)
             fprintf('\t\t%s\n', cellStruct.rat(r).cond(c).day(d).name)
 
-            dgPCu = false(length(cellStruct.rat(r).cond(c).day(d).smRms_1d_v3),1);
-            meanFrs = cellfun(@mean, cellStruct.rat(r).cond(c).day(d).smRms_1d_v3);
+            dgPCu = false(length(cellStruct.rat(r).cond(c).day(d).smRms_1d_v2),1);
+            meanFrs = cellfun(@mean, cellStruct.rat(r).cond(c).day(d).smRms_1d_v2);
             isPC = cell2mat(cellStruct.rat(r).cond(c).day(d).isPlaceCell);
 
-            for u = 1:length(cellStruct.rat(r).cond(c).day(d).smRms_1d_v3)
+            for u = 1:length(cellStruct.rat(r).cond(c).day(d).smRms_1d_v2)
                 if (r==2 & c==2 & d== 1 & u==33) | (r==2 & c==6 & d==1 & u==31) | (r==2 & c==1 & d==1 & u==23) | (r==2 & c==1 & d==1 & u==32)% duplicate cells
                     continue
                 end
@@ -78,8 +78,8 @@ for r = 1:length(cellStruct.rat)
                         any(meanFrs(u,:) >= minAvgFr) & all(meanFrs(u,:) < maxAvgFr) & any(isPC(u,:))
 
                     for b = 1:4
-                        uRateMaps(b,:) = cellStruct.rat(r).cond(c).day(d).smRms_1d_v3{u,b}; %get all of the ratemaps for the spat corr comparisons
-                        uTimeMaps(b,:) = cellStruct.rat(r).cond(c).day(d).timePerBin_v3{u,b};
+                        uRateMaps(b,:) = cellStruct.rat(r).cond(c).day(d).smRms_1d_v2{u,b}; %get all of the ratemaps for the spat corr comparisons
+                        uTimeMaps(b,:) = cellStruct.rat(r).cond(c).day(d).timePerBin_v2{u,b};
                     end %begin
 
                     dgPCu(u) = true;
@@ -136,8 +136,7 @@ rateOverlap_log = log( (rateOverlap ./ (1 - rateOverlap)) );
 table_for_stats = table(cellID, uID, strrep(dayID, '_', '-'), ratID, condID, comboID, rateMaps, spatCorr, spatCorr_z, rateOverlap, rateOverlap_log, ...
     'VariableNames', {'Cell', 'Unit', 'Day', 'Rat', 'Condition', 'Session', 'RateMaps', 'SpatCorr', 'SpatCorr_norm', 'RateOverlap', 'RateOverlap_logit'});
 
-save(['remappingTable_' date '.mat'], 'table_for_stats')
-cd Figures
+% save(['remappingTable_' date '.mat'], 'table_for_stats')
 %% plot rate maps from table
 cols = {[0.0 0.45 0.70] [0.85 0.37 0.01] [0.93 0.69 0.13] [0.0 0.62 0.45] [0.80 0.47 0.74] [0.8203 0.7031 0.5469]};
 rats = {'Rat452', 'Rat451', 'Rat501', 'Rat504', 'Rat503'};
@@ -213,9 +212,9 @@ for i=1:11
                 add_highlight_above_axes(h, [45/6 135/6; 180/6 270/6], 0.005, 0.005, [0 0 0; cols{6}]);
         end
 end
-savefig(gcf,'allCells')
-saveas(gcf, 'allCells', 'png')
-saveas(gcf, 'allCells', 'epsc')
+% savefig(gcf,'allCells')
+% saveas(gcf, 'allCells', 'png')
+% saveas(gcf, 'allCells', 'epsc')
 %% rat-specific marker dotplots
 
 markers = {'o', '>', 'd', 's', '<'};
@@ -311,6 +310,16 @@ condCount = length(unique(table_for_stats.Condition));
 distTest = 'ks'; % either 'ks' for 2-sample kolmogorov-smirnov or 'ad' for 2-sample anderson-darling
 
 for m = 1:length(metric)
+    cdfStat = {
+        'Comparison', 'test-type', 'stat', 'p' 'p_BF';
+        'Empty vs Social', [distTest '_one-tailed'], nan, nan, nan;
+        'Empty vs Social Odor', [distTest '_one-tailed'], nan, nan, nan;
+        'Empty vs Nonsocial Odor', [distTest '_one-tailed'], nan, nan, nan;
+        'Empty vs FoxOdor', [distTest '_one-tailed'], nan, nan, nan;
+        'Empty vs NovelRoom', [distTest '_one-tailed'], nan, nan, nan;
+        'Social Odor vs Fox Odor', [distTest '_two-tailed'], nan, nan, nan;
+        'Social Odor vs Nonsocial Odor', [distTest '_two-tailed'], nan, nan, nan;
+        };
     for b=1%:size(combos,1)
 
         if m == 1
@@ -352,6 +361,9 @@ for m = 1:length(metric)
             switch distTest
                 case 'ks'
                     [~,p,stat] = kstest2(control_data, cond_data,'Tail', 'smaller'); % If the data values in x1 tend to be larger than those in x2, the empirical distribution function of x1 tends to be smaller than that of x2, and vice versa.
+                    cdfStat{c,3} = stat;
+                    cdfStat{c,4} = p;
+                    cdfStat{c,5} = min(1, p .* (size(cdfStat,1)-1));
                     if  c==6 
                         format shortE
                         title({ [conditionNames{c} ' vs ' conditionNames{1}]; ['p = ' num2str(p) ', ks2stat = ' num2str(round(stat,3))] })
@@ -361,16 +373,22 @@ for m = 1:length(metric)
                     end
                 case 'ad'
                     [stat, p] = ad2test(control_data, cond_data); 
+                    cdfStat{c,3} = stat;
+                    cdfStat{c,4} = p;
+                    cdfStat{c,5} = min(1, p .* (size(cdfStat,1)-1));
                     title({ [conditionNames{c} ' vs ' conditionNames{1}]; ['p = ' num2str(round(p,3)) ', ad2stat = ' num2str(round(stat,3))] })
             end
            
             ylabel('Cumulative Probabilty')
             if m==1
                 xlabel('Spatial Correlation')
+                xlim([-1 1])
             else
                 xlabel('Rate Overlap')
+                xlim([0 1])
             end
             axis square
+            box off
             yticks([0 0.5 1])
            
             
@@ -417,20 +435,39 @@ for m = 1:length(metric)
                 switch distTest
                     case 'ks'
                         [~,p1,stat1] = kstest2(so_data, nso_data);
+                        cdfStat{8,3} = stat1;
+                        cdfStat{8,4} = p1;
+                        cdfStat{8,5} = min(1, p1 .* (size(cdfStat,1)-1));
+
                         [~,p2,stat2] = kstest2(so_data, fo_data);
+                        cdfStat{7,3} = stat2;
+                        cdfStat{7,4} = p2;
+                        cdfStat{7,5} = min(1, p2 .* (size(cdfStat,1)-1));
+
                         title({ ['SO vs NSO: p = ' num2str(round(p1,3)) ', ks2stat = ' num2str(round(stat1,3))]; ['SO vs FO: p = ' num2str(round(p2,3)) ', ks2stat = ' num2str(round(stat2,3))] })
                     case 'ad'
                         [stat1, p1] = ad2test(so_data,  nso_data);
+                        cdfStat{8,3} = stat1;
+                        cdfStat{8,4} = p1;
+                        cdfStat{8,5} = min(1, p1 .* (size(cdfStat,1)-1));
+
                         [stat2, p2] = ad2test(nso_data, fo_data);
+                        cdfStat{7,3} = stat2;
+                        cdfStat{7,4} = p2;
+                        cdfStat{7,5} = min(1, p2 .* (size(cdfStat,1)-1));
+
                         title({ ['SO vs NSO: p = ' num2str(round(p1,3)) ', ad2stat = ' num2str(round(stat1,3))]; ['SO vs FO: p = ' num2str(round(p2,3)) ', ad2stat = ' num2str(round(stat2,3))] })
                 end
                 
                 axis square
+                box off
                 ylabel('Cumulative Probabilty')
                 if m==1
                     xlabel('Spatial Correlation')
+                    xlim([-1 1])
                 else
                     xlabel('Rate Overlap')
+                    xlim([0 1])
                 end
                 yticks([0 0.5 1])
             end
@@ -440,6 +477,8 @@ for m = 1:length(metric)
         % saveas(gcf,[metric{m} '_' comparisons{b} '_cumulativeProb'], 'epsc')
         % SetFigureDefaults()
     end
+    disp(cdfStat)
+    writecell(cdfStat, [metric{m} '_cdfStats_' date '.csv']);
 end
 
 %% Linear mixed model statistics 
