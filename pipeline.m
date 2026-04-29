@@ -5,7 +5,7 @@
 %% 1. read in data struct
 load('cellStruct1_14_26.mat');
 
-%% 2. Figs. 2-4: Ratemaps, Spatial Correlation, and Rate Overlap
+%% 2. Figs. 2-4: Ratemaps, global and rate remapping
 place_cell_metrics(cellStruct, 'mean');
 
 %% 3. Fig. 5: Rat exploration time on track
