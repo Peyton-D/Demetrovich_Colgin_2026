@@ -428,13 +428,13 @@ distTest = 'ks'; % either 'ks' for 2-sample kolmogorov-smirnov or 'ad' for 2-sam
 for m = 1:length(metric)
     cdfStat = {
         'Comparison', 'test-type', 'stat', 'p' 'p_BF';
-        'Empty vs Social', [distTest '_one-tailed'], nan, nan, nan;
-        'Empty vs Social Odor', [distTest '_one-tailed'], nan, nan, nan;
-        'Empty vs Nonsocial Odor', [distTest '_one-tailed'], nan, nan, nan;
-        'Empty vs FoxOdor', [distTest '_one-tailed'], nan, nan, nan;
-        'Empty vs NovelRoom', [distTest '_one-tailed'], nan, nan, nan;
-        'Social Odor vs Fox Odor', [distTest '_two-tailed'], nan, nan, nan;
-        'Social Odor vs Nonsocial Odor', [distTest '_two-tailed'], nan, nan, nan;
+        'Empty vs Social', [distTest], nan, nan, nan;
+        'Empty vs Social Odor', [distTest], nan, nan, nan;
+        'Empty vs Nonsocial Odor', [distTest], nan, nan, nan;
+        'Empty vs FoxOdor', [distTest], nan, nan, nan;
+        'Empty vs NovelRoom', [distTest], nan, nan, nan;
+        'Social Odor vs Fox Odor', [distTest], nan, nan, nan;
+        'Social Odor vs Nonsocial Odor', [distTest], nan, nan, nan;
         };
     for b=1%:size(combos,1)
 
@@ -591,7 +591,7 @@ for m = 1:length(metric)
         end
     end
     disp(cdfStat)
-    writecell(cdfStat, [metric{m} '_cdfStats_' date '.csv']);
+    % writecell(cdfStat, [metric{m} '_cdfStats_' date '.csv']);
 end
 
 %% Linear mixed model statistics 
@@ -769,10 +769,10 @@ ylim([-1 1])
 if anv.pValue(end) < 0.05
     statPlan = {
         'Comparison', 'test-type', 'contrastLabel', 'Fstat', 'pTwo', 'df1','df2', 'Tstat', 'pNew', 'pNew_corrected';
-        'Empty vs Social', 'one-tailed', [0 1 0 0 0], nan, nan,nan, nan, nan,nan,nan;
-        'Empty vs Social Odor', 'one-tailed', [0 0 1 0 0], nan, nan, nan, nan, nan,nan,nan;
-        'Empty vs Nonsocial Odor', 'one-tailed', [0 0 0 1 0], nan, nan, nan, nan, nan,nan,nan;
-        'Empty vs FoxOdor', 'one-tailed', [0 0 0 0 1], nan, nan, nan, nan, nan, nan,nan;
+        'Empty vs Social', 'two-tailed', [0 1 0 0 0], nan, nan,nan, nan, nan,nan,nan;
+        'Empty vs Social Odor', 'two-tailed', [0 0 1 0 0], nan, nan, nan, nan, nan,nan,nan;
+        'Empty vs Nonsocial Odor', 'two-tailed', [0 0 0 1 0], nan, nan, nan, nan, nan,nan,nan;
+        'Empty vs FoxOdor', 'two-tailed', [0 0 0 0 1], nan, nan, nan, nan, nan, nan,nan;
         'Social Odor vs Fox Odor', 'two-tailed', [0 0 1 0 -1], nan, nan, nan, nan, nan, nan,nan;
         'Social Odor vs Nonsocial Odor','two-tailed', [0 0 1 -1 0], nan, nan, nan,  nan ,nan, nan,nan;
         };
