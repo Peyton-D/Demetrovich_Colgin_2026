@@ -1,4 +1,4 @@
-function place_cell_metrics(cellStruct)
+function place_cell_metrics(cellStruct, frType)
 % Purpose: to compute place cell metrics (spatial correlation, rate
 % overlap) from cellStruct, store in table (long) format, plot metrics, and
 % run statistics 
@@ -7,6 +7,7 @@ function place_cell_metrics(cellStruct)
 %
 % Inputs: 
 %   cellStruct - data structure containing the cells from all recordings 
+%   frType - whether to use the mean or peak firing rate for analyses
 %
 % Outputs:
 %   Fig. 1 - ratemaps (Fig. 2 from paper)
@@ -47,7 +48,11 @@ uID = [];
 rateMaps = []; 
 spatCorr = [];
 rateOverlap = [];
-
+signedLogRatio = [];
+fieldChange = []; 
+fieldProp = [];
+frA = [];
+frB = [];
 uCntr = 0;
 %% GET DATA
 for r = 1:length(cellStruct.rat)
@@ -99,15 +104,71 @@ for r = 1:length(cellStruct.rat)
                         rm1 = uRateMaps(b1,:); %ratemaps to compare
                         rm2 = uRateMaps(b2,:);
 
+                        pf1 = cellStruct.rat(r).cond(c).day(d).smPfs_1d_v3(u,b1);
+                        pf2 = cellStruct.rat(r).cond(c).day(d).smPfs_1d_v3(u,b2);
+
                         rateMaps = [rateMaps; {[rm1; rm2]}];
 
                         scMat = corrcoef(rm1,rm2);
                         spatCorr = [spatCorr; scMat(2)];
+                        
+                        fieldRateb1 = getStrongestFieldRate(pf1, frType);
+                        fieldRateb2 = getStrongestFieldRate(pf2, frType);
 
-                        avgfr1 = nanmean(uRateMaps(b1,:));
-                        avgfr2 = nanmean(uRateMaps(b2,:));
-                        rateRatio = min([avgfr1 avgfr2]) / max([avgfr1 avgfr2]); % Calculate the rate ratio with the lower FR as numerator
-                        rateOverlap = [rateOverlap; rateRatio];
+                        hasA = ~isnan(fieldRateb1);
+                        hasB = ~isnan(fieldRateb2);
+
+                        if hasA & hasB % field in both 
+                            fieldProp = [fieldProp; 1];
+                        elseif ~hasA & hasB % gained field
+                            fieldProp = [fieldProp; 2];
+                        elseif hasA & ~hasB % lost field
+                            fieldProp = [fieldProp; 3];
+                        elseif ~hasA & ~hasB % field in neither
+                            fieldProp = [fieldProp; 4];
+                        end
+                        
+                        % if hasA & hasB
+                        %     fieldBoth = 1;
+                        %     fieldGain = 0;
+                        %     fieldLoss = 0;
+                        %     fieldNeither = 0;
+                        % elseif ~hasA & hasB
+                        %     fieldBoth = 0;
+                        %     fieldGain = 1;
+                        %     fieldLoss = 0;
+                        %     fieldNeither = 0;
+                        % elseif hasA & ~hasB
+                        %     fieldBoth = 0;
+                        %     fieldGain = 0;
+                        %     fieldLoss = 1;
+                        %     fieldNeither = 0;
+                        % elseif ~hasA & ~hasB
+                        %     fieldBoth = 0;
+                        %     fieldGain = 0;
+                        %     fieldLoss = 0;
+                        %     fieldNeither = 1;
+                        % end
+
+
+                        fc = log(fieldRateb2 / fieldRateb1);
+                        fieldChange = [fieldChange; fc];
+                        
+                        if strcmp(frType, 'mean')
+                            fr1 = nanmean(uRateMaps(b1,:));
+                            fr2 = nanmean(uRateMaps(b2,:));
+                            frA= [frA; fr1];
+                            frB= [frB; fr2];
+                        else
+                            fr1 = max(uRateMaps(b1,:));
+                            fr2 = max(uRateMaps(b2,:));
+                            frA= [frA; fr1];
+                            frB= [frB; fr2];
+                        end
+                        ro = min([fr1 fr2]) / max([fr1 fr2]); % Calculate the rate ratio with the lower FR as numerator
+                        rateOverlap = [rateOverlap; ro];
+                        slr = log(fr2/fr1); % signed log ratio
+                        signedLogRatio = [signedLogRatio; slr];
 
                     end %combos
                 end % good unit
@@ -130,13 +191,19 @@ end %rat
 spatCorr_z = atanh(spatCorr); 
 
 % logit transform for rate overlap
-rateOverlap_log = log( (rateOverlap ./ (1 - rateOverlap)) ); 
+% rateOverlap_log = log( (rateOverlap ./ (1 - rateOverlap)) ); 
+
+% magnitude of log ratio
+% logRatioMag = abs(signedLogRatio);
 
 % create table
-table_for_stats = table(cellID, uID, strrep(dayID, '_', '-'), ratID, condID, comboID, rateMaps, spatCorr, spatCorr_z, rateOverlap, rateOverlap_log, ...
-    'VariableNames', {'Cell', 'Unit', 'Day', 'Rat', 'Condition', 'Session', 'RateMaps', 'SpatCorr', 'SpatCorr_norm', 'RateOverlap', 'RateOverlap_logit'});
+% table_for_stats = table(cellID, uID, strrep(dayID, '_', '-'), ratID, condID, comboID, rateMaps, spatCorr, spatCorr_z, rateOverlap, rateOverlap_log, ...
+%     'VariableNames', {'Cell', 'Unit', 'Day', 'Rat', 'Condition', 'Session', 'RateMaps', 'SpatCorr', 'SpatCorr_norm', 'RateOverlap', 'RateOverlap_logit'});
 
-% save(['remappingTable_' date '.mat'], 'table_for_stats')
+table_for_stats = table(cellID, uID, strrep(dayID, '_', '-'), ratID, condID, comboID, rateMaps, frA, frB, spatCorr, spatCorr_z, rateOverlap, signedLogRatio, fieldChange, fieldProp, ...
+    'VariableNames', {'Cell', 'Unit', 'Day', 'Rat', 'Condition', 'Session', 'RateMaps', 'FiringRateA', 'FiringRateB', 'SpatCorr', 'SpatCorr_norm', 'RateOverlap', 'signedLogRatio', 'infieldChange', 'FieldBehavior'});
+
+save(['remappingTable_' date '.mat'], 'table_for_stats')
 %% plot rate maps from table
 cols = {[0.0 0.45 0.70] [0.85 0.37 0.01] [0.93 0.69 0.13] [0.0 0.62 0.45] [0.80 0.47 0.74] [0.8203 0.7031 0.5469]};
 rats = {'Rat452', 'Rat451', 'Rat501', 'Rat504', 'Rat503'};
@@ -212,13 +279,13 @@ for i=1:11
                 add_highlight_above_axes(h, [45/6 135/6; 180/6 270/6], 0.005, 0.005, [0 0 0; cols{6}]);
         end
 end
-% savefig(gcf,'allCells')
-% saveas(gcf, 'allCells', 'png')
-% saveas(gcf, 'allCells', 'epsc')
-%% rat-specific marker dotplots
+savefig(gcf,['allCells_' date])
+saveas(gcf, ['allCells_' date], 'png')
+saveas(gcf, ['allCells_' date], 'epsc')
 
+%% rat-specific marker dotplots
 markers = {'o', '>', 'd', 's', '<'};
-metric = {'SpatCorr', 'RateOverlap'};
+metric = {'SpatCorr', 'signedLogRatio'};
 colorInds = [1,2,3,4,5,6];
 
 % subplot(3,3,1:4)
@@ -287,23 +354,72 @@ for m=1:length(metric)
 
         xlim([-1, num_conditions + 1]);
         xticks('');
+        ylabel(metric{m})
         if m==1
-            ylabel('Spatial Correlation');
             ylim([-1 1])
         else
-            ylabel('Rate Overlap')
-            ylim([0 1])
+            ylim([-2 2])
         end
-
-        SetFigureDefaults
-%         saveas(gcf, [metric{m} '_' comparisons{b} '_dotplot'], 'epsc')
-%         saveas(gcf, [metric{m} '_' comparisons{b} '_dotplot'], 'png')
     end
     if m == 1 % create table of stable cells using threshold from empty condition spatial correlations
         stableTable = table_for_stats(table_for_stats.SpatCorr > sc_thresh,:); 
+        % unstableTable = table_for_stats(table_for_stats.SpatCorr < sc_thresh,:); 
     end
 end
-
+%% plot firing rates
+% figure, clf
+% for c=1:length(conditions)
+%     % pullData = strcmp(table_for_stats.Condition, conditions{c});
+%     % cond_dataA = table_for_stats.FiringRateA(pullData,:); 
+%     % cond_dataB = table_for_stats.FiringRateB(pullData,:);
+%     pullData = strcmp(stableTable.Condition, conditions{c});
+%     cond_dataA = stableTable.FiringRateA(pullData,:); 
+%     cond_dataB = stableTable.FiringRateB(pullData,:);
+%     subplot(2,3,c)
+%     scatter(cond_dataA, cond_dataB, 30, 'filled', 'MarkerFaceColor', cols{c})
+%     hold on
+%     plot([0 10], [0 10], 'k--')
+%     xlim([0 10])
+%     ylim([0 10])
+%     xlabel('Firing Rate in A')
+%     ylabel('Firing Rate in B')
+%     title(conditionNames{c})
+% end
+% % 
+% % % loglog scale
+% logax = logspace(-2, 2, 10);
+% figure, clf
+% for c=1:length(conditions)
+%     pullData = strcmp(table_for_stats.Condition, conditions{c});
+%     cond_dataA = table_for_stats.FiringRateA(pullData,:); 
+%     cond_dataB = table_for_stats.FiringRateB(pullData,:);
+%     % pullData = strcmp(stableTable.Condition, conditions{c});
+%     % cond_dataA = stableTable.FiringRateA(pullData,:); 
+%     % cond_dataB = stableTable.FiringRateB(pullData,:);
+%     subplot(2,3,c)
+%     loglog(cond_dataA, cond_dataB, 'o', 'LineStyle', 'none', 'MarkerFaceColor', cols{c}, 'MarkerEdgeColor', 'none');
+%     hold on
+%     plot(logax, logax, 'k--')
+%     xlabel('Firing Rate in A')
+%     ylabel('Firing Rate in B')
+%     title(conditionNames{c})
+% end
+%% field behavior per condition 
+% figure, theme(gcf, 'light'), clf
+% for c=1:length(conditions)
+%     pullData = strcmp(table_for_stats.Condition, conditions{c});
+%     cond_dataA = table_for_stats.FieldBehavior(pullData,:); 
+%     % pullData = strcmp(stableTable.Condition, conditions{c});
+%     % cond_dataA = stableTable.FieldBehavior(pullData,:);
+%     subplot(2,3,c)
+%     histogram(cond_dataA,  'FaceColor', cols{c}, 'EdgeColor', cols{c});
+%     xticks([1:4])
+%     xticklabels({'Field in Both' 'Gained Field' 'Lost Field' 'Field in Neither'})
+%     ylabel('# Cells')
+%     title(conditionNames{c})
+%     ylim([0 15])
+%     xlim([0.25 4.75])
+% end
 %% cumulative probability
 tileNum = [2,3,5,6,8];
 condCount = length(unique(table_for_stats.Condition));
@@ -360,7 +476,11 @@ for m = 1:length(metric)
 
             switch distTest
                 case 'ks'
-                    [~,p,stat] = kstest2(control_data, cond_data,'Tail', 'smaller'); % If the data values in x1 tend to be larger than those in x2, the empirical distribution function of x1 tends to be smaller than that of x2, and vice versa.
+                    if m == 1 % spatial corr
+                        [~,p,stat] = kstest2(control_data, cond_data,'Tail', 'smaller'); % If the data values in x1 tend to be larger than those in x2, the empirical distribution function of x1 tends to be smaller than that of x2, and vice versa.
+                    else % rate ratios
+                        [~,p,stat] = kstest2(control_data, cond_data);
+                    end
                     cdfStat{c,3} = stat;
                     cdfStat{c,4} = p;
                     cdfStat{c,5} = min(1, p .* (size(cdfStat,1)-1));
@@ -380,19 +500,17 @@ for m = 1:length(metric)
             end
            
             ylabel('Cumulative Probabilty')
+            xlabel(metric{m})
             if m==1
-                xlabel('Spatial Correlation')
                 xlim([-1 1])
             else
-                xlabel('Rate Overlap')
-                xlim([0 1])
+                xlim([-2 2])
             end
             axis square
             box off
             yticks([0 0.5 1])
            
-            
-            if c == 3 & m == 1 
+            if c == 3
                 if m == 1
                     pullData = strcmp(table_for_stats.Condition, 'SocialOdor') & strcmp(table_for_stats.Session, comparisons{b});
                     so_data = table_for_stats.(metric{m})(pullData,:);
@@ -462,20 +580,15 @@ for m = 1:length(metric)
                 axis square
                 box off
                 ylabel('Cumulative Probabilty')
+                xlabel(metric{m})
                 if m==1
-                    xlabel('Spatial Correlation')
                     xlim([-1 1])
                 else
-                    xlabel('Rate Overlap')
-                    xlim([0 1])
+                    xlim([-2 2])
                 end
                 yticks([0 0.5 1])
             end
         end
-        % sgtitle(comparisons{b})
-        % saveas(gcf,[metric{m} '_' comparisons{b} '_cumulativeProb'], 'png')
-        % saveas(gcf,[metric{m} '_' comparisons{b} '_cumulativeProb'], 'epsc')
-        % SetFigureDefaults()
     end
     disp(cdfStat)
     writecell(cdfStat, [metric{m} '_cdfStats_' date '.csv']);
@@ -495,29 +608,40 @@ lme = fitlme(table_for_stats, ...
 
 % test for overall effect of condition
 anv = anova(lme)
-% save([metric{m} '_remapping_lme.mat'], 'lme', 'anv')
+save(['global_remapping_lme_' date '.mat'], 'lme', 'anv')
 
 % get estimated marginal means
 % Define categories
-conditions = unique(table_for_stats.Condition);
-sessions = unique(table_for_stats.Session);
+conditions = categories(table_for_stats.Condition);
+n = numel(conditions);
 
-% Create grid of all combinations
-[C, S] = ndgrid(conditions, sessions);
+dummyRat  = repmat(table_for_stats.Rat(1), n, 1);
+% dummyCell = repmat(stableTable.Cell(1), n, 1);
 
-% Create dummy values for Rat and Cell
-n = numel(C);
-dummyRat = repmat("DummyRat", n, 1);
-dummyCell = repmat("DummyCell", n, 1);
+newTbl = table(categorical(conditions), categorical(dummyRat), ...
+    'VariableNames', {'Condition','Rat'});
 
-% Build table
-newTbl = table(C(:), S(:), categorical(dummyRat), categorical(dummyCell), ...
-    'VariableNames', {'Condition', 'Session', 'Rat', 'Cell'});
-
-% plot 
 [yhat, yCI] = predict(lme, newTbl, 'Conditional', false);
+% conditions = unique(table_for_stats.Condition);
+% sessions = unique(table_for_stats.Session); % unnecessary when no main effect of session
+% 
+% % Create grid of all combinations
+% [C, S] = ndgrid(conditions, sessions);
+% 
+% % Create dummy values for Rat and Cell
+% n = numel(C);
+% dummyRat = repmat("DummyRat", n, 1);
+% dummyCell = repmat("DummyCell", n, 1);
+% 
+% % Build table
+% newTbl = table(C(:), S(:), categorical(dummyRat), categorical(dummyCell), ...
+%     'VariableNames', {'Condition', 'Session', 'Rat', 'Cell'});
+% 
+% % plot 
+% [yhat, yCI] = predict(lme, newTbl, 'Conditional', false);
+
 figure(2), subplot(3,3,7), cla, hold on
-for c=1:6
+for c=1:length(yhat)
     plot([c,c],[yCI(c,1), yCI(c,2)], 'Color', cols{c}, 'LineWidth', 2)
     plot(c, yhat(c), 'ko')
 end
@@ -589,12 +713,12 @@ if anv.pValue(end) < 0.05
        
     end
     disp(statPlan)
-    % writecell(statPlan, [metric{m} '_stats_' date '.csv']);
+    writecell(statPlan, ['spatCorr_stats_' date '.csv']);
 end
 SetFigureDefaults()
-% savefig(gcf,[metric{m} '_plots'])
-% saveas(gcf, [metric{m} '_plots'], 'png')
-% saveas(gcf, [metric{m} '_plots'], 'epsc')
+savefig(gcf,['spatCorr_plots_' date])
+saveas(gcf, ['spatCorr_plots_' date], 'png')
+saveas(gcf, ['spatCorr_plots_' date], 'epsc')
 
 %% for stable cell metrics
 stableTable.Cell = categorical(stableTable.Cell);
@@ -605,33 +729,32 @@ stableTable.Condition = reordercats(stableTable.Condition, {'Empty', 'Social', '
 stableTable.Session = categorical(stableTable.Session);
 
 % fit model
+% lme = fitlme(stableTable, ...
+%     'RateOverlap_logit ~ Condition + (1|Rat)', 'Verbose', 1, 'DummyVarCoding', 'reference');
+
 lme = fitlme(stableTable, ...
-    'RateOverlap_logit ~ Condition + (1|Rat)', 'Verbose', 1, 'DummyVarCoding', 'reference');
+    'signedLogRatio ~ Condition + (1|Rat)', 'Verbose', 1, 'DummyVarCoding', 'reference');
 
 % test for overall effect of condition
 anv = anova(lme)
-% save([metric{m} '_remapping_lme.mat'], 'lme', 'anv')
+save(['rate_remapping_lme_' date '.mat'], 'lme', 'anv')
 
 % get estimated marginal means
 % Define categories
-conditions = unique(stableTable.Condition);
-sessions = unique(stableTable.Session);
+conditions = categories(stableTable.Condition);
+n = numel(conditions);
 
-% Create grid of all combinations
-[C, S] = ndgrid(conditions, sessions);
+dummyRat  = repmat(stableTable.Rat(1), n, 1);
+% dummyCell = repmat(stableTable.Cell(1), n, 1); % use only if random
+% effect of cell 
 
-% Create dummy values for Rat and Cell
-n = numel(C);
-dummyRat = repmat("DummyRat", n, 1);
-dummyCell = repmat("DummyCell", n, 1);
-
-% Build table
-newTbl = table(C(:), S(:), categorical(dummyRat), categorical(dummyCell), ...
-    'VariableNames', {'Condition', 'Session', 'Rat', 'Cell'});
+newTbl = table(categorical(conditions), categorical(dummyRat), ...
+    'VariableNames', {'Condition','Rat'});
 
 [yhat, yCI] = predict(lme, newTbl, 'Conditional', false);
+
 figure(3), subplot(3,3,7), cla, hold on
-for c=1:length(C)
+for c=1:length(yhat)
     plot([c,c],[yCI(c,1), yCI(c,2)], 'Color', cols{c}, 'LineWidth', 2)
     plot(c, yhat(c), 'ko')
 end
@@ -639,7 +762,8 @@ xticks([1:length(conditions)])
 xticklabels(conditionNames)
 xtickangle(45)
 xlim([-1 7])
-ylabel({'Rate Overlap'; '(logit transform)'})
+ylabel('Signed Log FR Ratio')
+ylim([-1 1])
 
 % if significant main effect of condition, run post-hoc planned comparisons
 if anv.pValue(end) < 0.05
@@ -701,10 +825,30 @@ if anv.pValue(end) < 0.05
         end
     end
     disp(statPlan)
-    % writecell(statPlan, [metric{m} '_stats_' date '.csv']);
+    writecell(statPlan, ['rate_stats_' date '.csv']);
 end
 SetFigureDefaults()
-% savefig(gcf,[metric{m} '_plots'])
-% saveas(gcf, [metric{m} '_plots'], 'png')
-% saveas(gcf, [metric{m} '_plots'], 'epsc')
+savefig(gcf,['rate_plots_' date])
+saveas(gcf, ['rate_plots_' date], 'png')
+saveas(gcf, ['rate_plots_' date], 'epsc')
+
+end
+function rates = getStrongestFieldRate(placeFields, mode)
+% mode = 'peak' or 'mean'
+
+numCells = numel(placeFields);
+rates = nan(numCells,1);
+
+for n = 1:numCells
+    if isempty(placeFields{n}), continue; end
+
+    % find strongest field
+    [~, idx] = max([placeFields{n}.peakRate]);
+
+    if strcmp(mode, 'peak')
+        rates(n) = placeFields{n}(idx).peakRate;
+    else
+        rates(n) = placeFields{n}(idx).meanRate;
+    end
+end
 end
