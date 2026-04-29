@@ -6,7 +6,7 @@
 load('cellStruct1_14_26.mat');
 
 %% 2. Figs. 2-4: Ratemaps, Spatial Correlation, and Rate Overlap
-place_cell_metrics(cellStruct);
+place_cell_metrics(cellStruct, 'mean');
 
 %% 3. Fig. 5: Rat exploration time on track
 exploration_metrics(cellStruct);
