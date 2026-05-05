@@ -3,7 +3,6 @@ function classifyDGunits_v3_clean(cellStruct)
 % Requires saved output of:
 %           - getDS_CSD_per_shank_v4.m (Dentate spikes and CSDs)
 %           - getDS2_reversal.m (DS2 reversals)
-%           - get_npix_units_and_ratemaps_v2 (cells)
 % Inputs:
 %   cellStruct
 % Outputs:
